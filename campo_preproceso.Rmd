@@ -1,0 +1,594 @@
+---
+title: 'Visualización de datos - PRA 2'
+author: "Autor: Cristian Campo Pérez"
+date: "Junio 2023"
+header-includes: \usepackage{booktabs}
+output:
+  ioslides_presentation:
+    widescreen: true
+    smaller: true
+    number_sections: yes
+    includes:
+      in_header: 75.584-PEC-header.html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Principales causas de muerte
+
+## Los datos
+
+Muerte ocurridas por diferentes causas en todos los países del mundo entre 1990 y 2019.
+
+Fuente: https://www.kaggle.com/datasets/iamsouravbanerjee/cause-of-deaths-around-the-world
+
+Para añadir contexto se añaden las siguientes variables:
+
+* Continente.
+* Grupo de ingresos principal.
+
+## Resumen
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+options(OutDec= ".")   # read ?options
+data<-read.csv("./cause_of_deaths.csv",header=T,sep=",")
+data_orig<-read.csv("./out_def.csv",header=T,sep=";")
+data_sum<-read.csv("./out_sum_2.csv",header=T,sep=";")
+
+structure= str(data_orig) # Estructura de los datos
+structure
+
+# number of NA
+tmp = sapply(data_orig, is.na)
+#
+# sum(tmp)
+```
+
+
+
+# Análisis
+
+## Principales causas de muerte
+
+Analizamos las causas de mayor número de muertes a nivel mundial
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+if (!require('ggplot2')) install.packages('ggplot2')
+library(ggplot2)
+
+d =data_sum[,6:36]
+# number of NA
+tmp = sapply(d, mean)
+
+name = names(tmp)
+name <- matrix(name, nrow = 31, byrow = TRUE)
+df <- transform(data.frame(tmp), y=name)
+# ORDER VALUES
+df_ord <- with(df, df[order(tmp,decreasing = TRUE),])
+
+
+len=5
+colrs=1:31
+# BASE R barplot:
+
+par(mfrow=c(1,2))    # set the plotting area into a 1*2 array
+barplot(df_ord$tmp[31:1], beside = TRUE, horiz = TRUE, col=colrs[31:1], args.legend = list(x = "bottomright"), xlab= 'avg deaths / 100k hab') 
+barplot(df_ord$tmp[len:1], beside = TRUE, horiz = TRUE,legend.text=, col=colrs[len:1], args.legend = list(x = "bottomright"), xlab= 'avg deaths / 100k hab')
+legs = df_ord$y[1:len]
+
+legs= gsub("Diseases","",legs)
+legs= gsub("Infections","",legs)
+legend("bottomright", 
+       legend = legs,fill = 1:6,
+       cex = 0.75)
+
+
+```
+
+
+## Causas de muerte máximos
+
+ \tiny
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+library(ggplot2)
+
+
+
+d =data_orig[,7:37]
+# number of NA
+tmp = sapply(d, max)
+
+name = names(tmp)
+name <- matrix(name, nrow = 31, byrow = TRUE)
+df <- transform(data.frame(tmp), y=name)
+# ORDER VALUES
+df_ord <- with(df, df[order(tmp,decreasing = TRUE),])
+index = c(which.max(data_orig$Conflict.and.Terrorism),which.max(data_orig$Exposure.to.Forces.of.Nature),which.max(data_orig$HIV.AIDS))
+# data_orig[index,c(1,2,4,23,27)]
+printf <- function (...) cat(sprintf(...))
+printf("%s | %.0f | %s | %.2f | %.0f\n", data_orig[index[1],]$Country.Territory,data_orig[index[1],]$Year,colnames(data_orig)[27],data_orig[index[1],27],data[index[1],27])
+printf("%s | %.0f | %s | %.2f | %.0f\n", data_orig[index[2],]$Country.Territory,data_orig[index[2],]$Year,colnames(data_orig)[23],data_orig[index[2],23],data[index[2],23])
+# printf("%s | %.0f | %s | %.2f | %.0f\n", data_orig[index[3],]$Country.Territory,data_orig[index[3],]$Year,colnames(data_orig)[15],data_orig[index[3],15],data[index[3],15])
+```
+
+\normalize
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+len=5
+colrs=1:31
+# BASE R barplot:
+
+
+barplot(df_ord$tmp[len:1], beside = TRUE, horiz = TRUE, ylab ='diseases',legend.text=, col=colrs[len:1], args.legend = list(x = "bottomright"), xlab= 'max deaths / 100k hab')
+legs = df_ord$y[1:len]
+
+legs= gsub("Diseases","",legs)
+legs= gsub("Infections","",legs)
+
+legend("bottomright", 
+       legend = legs,fill = 1:6,
+       cex = 0.75)
+
+
+
+
+
+```
+
+## Visión general
+
+<div class="flourish-embed flourish-map" data-src="visualisation/14212774"><script src="https://public.flourish.studio/resources/embed.js"></script></div>
+
+## Principales causas de muerte: Cardiovascular.Diseases
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+  if (!require('ggplot2')) install.packages('ggplot2')
+library(ggplot2)
+
+
+
+len=5
+# BASE R barplot:
+continents = unique(data_sum$Continent)[1:3]
+
+par(mfrow=c(1,3))    # set the plotting area into a 1*2 array
+for( cont in continents){
+  data_cont= data_sum[data_sum$Continent==cont,]
+  len_ = len
+  df_ord_ <- with(data_cont, data_cont[order(Cardiovascular.Diseases,decreasing = TRUE),])
+  if(length(df_ord_$Country.Territory) < len_)
+    len_ = length(df_ord_$Country.Territory)
+  
+  df_ord_ <- head(df_ord_, 5)
+  df_ord_$percentage <- round(df_ord_$Cardiovascular.Diseases / sum(df_ord_$Cardiovascular.Diseases)*100,0)
+  
+  pie(df_ord_$Cardiovascular.Diseases[1:len_], col = colrs,labels=paste(" ",df_ord_$percentage, "% "),cex=1.3)
+  legend('bottom', df_ord_$Country.Territory[1:len_], cex = 1, fill = colrs,inset=c(-0.2,0))
+  title(cont)
+  
+}
+
+
+
+```
+
+## Principales causas de muerte: Cardiovascular.Diseases
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+  if (!require('ggplot2')) install.packages('ggplot2')
+library(ggplot2)
+
+
+
+len=5
+# BASE R barplot:
+continents = unique(data_sum$Continent)[4:6]
+
+par(mfrow=c(1,3))    # set the plotting area into a 1*2 array
+for( cont in continents){
+  data_cont= data_sum[data_sum$Continent==cont,]
+  len_ = len
+  df_ord_ <- with(data_cont, data_cont[order(Cardiovascular.Diseases,decreasing = TRUE),])
+  if(length(df_ord_$Country.Territory) < len_)
+    len_ = length(df_ord_$Country.Territory)
+  
+  df_ord_ <- head(df_ord_, 5)
+  df_ord_$percentage <- round(df_ord_$Cardiovascular.Diseases / sum(df_ord_$Cardiovascular.Diseases)*100,0)
+  pie(df_ord_$Cardiovascular.Diseases[1:len_], col = colrs,labels=paste(" ",df_ord_$percentage, "% "),cex=1.3)
+  legend('bottom', df_ord_$Country.Territory[1:len_], cex = 0.9, fill = colrs,inset=c(-0,0))
+  title(cont)
+  
+}
+
+
+
+```
+
+
+
+## Evolución: Cardiovascular.Diseases
+
+<div class="flourish-embed flourish-scatter" data-src="visualisation/14242798"><script src="https://public.flourish.studio/resources/embed.js"></script></div>
+
+## Grupo económico
+
+Se observa HIV con bastante peso en países menos desarrollados 
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+  if (!require('ggplot2')) install.packages('ggplot2')
+library(ggplot2)
+
+
+
+len=5
+# BASE R barplot:
+continents = unique(data_sum$Income.group)[1:4]
+
+par(mfrow=c(2,2))    # set the plotting area into a 1*2 array
+for( cont in continents){
+  data_cont= data_sum[data_sum$Income.group==cont,]
+  d =data_cont[,6:36]
+  # number of NA
+  tmp = sapply(d, mean)
+  
+  name = names(tmp)
+  name <- matrix(name, nrow = 31, byrow = TRUE)
+  df <- transform(data.frame(tmp), y=name)
+  # ORDER VALUES
+  df_ord <- with(df, df[order(tmp,decreasing = TRUE),])
+  
+  
+  len=10
+  colrs=1:31
+  # BASE R barplot:
+  
+  barplot(df_ord$tmp[len:1], beside = TRUE, horiz = FALSE, ylab ='cases /100k',legend.text=, col=colrs[len:1], args.legend = list(x = "bottomright"), xlab= '')
+  legs = df_ord$y[1:len]
+
+  legs= gsub("Diseases","",legs)
+  legs= gsub("Disease","",legs)
+  legs= gsub("Infections","",legs)
+
+  legend("topleft", 
+         legend = legs,fill = 1:6,
+         cex = 0.5)
+  title(substr(cont,4,10000))
+  
+}
+
+
+
+```
+
+# Evolución 
+
+## Mayores y menores evoluciones en los últimos 30 años
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+if (!require('ggplot2')) install.packages('ggplot2')
+library(ggplot2)
+
+
+
+len=5
+# BASE R 8:
+continents = unique(data_sum$Country.Territory)
+enfermedad = 7:37
+n_enfermedad = colnames(data_orig)
+foo = c()
+foo$cont <- c()
+foo$e <- c()
+foo$value <- c()
+foo$value_ <- c()
+
+for( cont in continents){
+  for ( e in enfermedad) {
+    data_cont= data_orig[data_orig$Country.Territory==cont,e]
+    foo$cont=append(foo$cont,cont, after=1)
+    foo$e=append(foo$e,n_enfermedad[e], after=1)
+    foo$value=append(foo$value,data_cont[30]-data_cont[1], after=1)
+    foo$value_=append(foo$value_,data_cont[30]/data_cont[1], after=1)
+
+  }
+}
+df = data.frame(foo$cont,foo$e,foo$value)
+df_ord <- with(df, df[order(foo$value,decreasing = TRUE),])
+
+
+par(mfrow=c(1,2))
+len=10
+colrs=1:31
+# BASE R barplot:
+barplot(df_ord$foo.value[len:1], beside = TRUE, horiz = TRUE, ylab ='diseases',legend.text=, col=colrs[len:1], args.legend = list(x = "bottomright"), xlab= 'Positive increment in deaths')
+legs = df_ord$foo.e[1:len]
+
+legs= gsub("Diseases","",legs)
+legs= gsub("Infections","",legs)
+legend("bottomright", 
+       legend = paste(df_ord$foo.cont[1:len], legs) ,fill = 1:6,
+       cex = 0.55)
+
+df_ord <- with(df, df[order(foo$value,decreasing = FALSE),])
+
+colrs=1:31
+# BASE R barplot:
+barplot(df_ord$foo.value[len:1], beside = TRUE, horiz = TRUE, ylab ='diseases',legend.text=, col=colrs[len:1], args.legend = list(x = "bottomright"), xlab= 'Decrement of deaths')
+legs = df_ord$foo.e[1:len]
+
+legs= gsub("Diseases","",legs)
+legs= gsub("Infections","",legs)
+legend("bottomright", 
+       legend = paste(df_ord$foo.cont[1:len], legs) ,fill = 1:6,
+       cex = 0.55)
+
+write.csv(df_ord, './modification.csv')
+```
+
+##  Visualización completa
+
+<div class="flourish-embed flourish-chart" data-src="visualisation/14243655"><script src="https://public.flourish.studio/resources/embed.js"></script></div>
+
+##  Visualización completa
+
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+
+
+len=10
+library(plotly)
+fig <- plot_ly(data_orig)
+n_enfermedad = colnames(data_orig)
+enf = df_ord$foo.e[1:len]
+country = df_ord$foo.cont[1:len]
+l = list()
+for( i in 1:len){
+    count = country[i]
+    e = enf[i]
+    data_cont=data_orig[data_orig$Country.Territory==count,which(n_enfermedad==e)]
+    e= gsub("Diseases","",e)
+    e= gsub("Infections","",e)
+    visible=F
+    if( i == 1)
+      visible=T
+    fig <- fig%>% add_lines(1990:2019,data_cont,visible=visible,name='Cases')
+    l_ = list(len)
+    for(j in 1:len)
+      l_[j]=FALSE
+    l_[i] = TRUE
+    l_1 = list(method = "restyle",
+               args = list("visible", l_),
+               label = paste(count,' ', e))
+    
+    l[i] <- list(l_1)
+    
+
+}
+
+fig <- fig %>% layout(
+    title = "Mejores evoluciones",
+    xaxis = list(),
+    yaxis = list(title = "y"),
+    updatemenus = list(
+      list(
+        y = 2,
+        buttons = l
+      )
+    )
+  )
+fig
+```
+
+##  Visualización completa
+
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+
+df = data.frame(foo$cont,foo$e,foo$value)
+df_ord <- with(df, df[order(foo$value,decreasing = TRUE),])
+len=10
+library(plotly)
+fig <- plot_ly(data_orig)
+n_enfermedad = colnames(data_orig)
+enf = df_ord$foo.e[1:len]
+country = df_ord$foo.cont[1:len]
+l = list()
+for( i in 1:len){
+    count = country[i]
+    e = enf[i]
+    data_cont=data_orig[data_orig$Country.Territory==count,which(n_enfermedad==e)]
+    e= gsub("Diseases","",e)
+    e= gsub("Infections","",e)
+    visible=F
+    if( i == 1)
+      visible=T
+    fig <- fig%>% add_lines(1990:2019,data_cont,visible=visible,name='Cases')
+    l_ = list(len)
+    for(j in 1:len)
+      l_[j]=FALSE
+    l_[i] = TRUE
+    l_1 = list(method = "restyle",
+               args = list("visible", l_),
+               label = paste(count,' ', e))
+    
+    l[i] <- list(l_1)
+    
+
+}
+
+fig <- fig %>% layout(
+    title = "Peores evoluciones",
+    xaxis = list(domain= c(1990,2019),fixedrange=TRUE),
+    yaxis = list(title = "y"),
+    updatemenus = list(
+      list(
+        y = 2,
+        buttons = l
+      )
+    )
+  )
+fig
+```
+
+
+# Por País
+
+##  Enfermedades mas mortales en España
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+if (!require('ggplot2')) install.packages('ggplot2')
+library(ggplot2)
+
+data_filter= data_sum[data_sum$Country.Territory== 'Spain',]
+d =data_filter[,6:36]
+# number of NA
+tmp = sapply(d, mean)
+
+name = names(tmp)
+name <- matrix(name, nrow = 31, byrow = TRUE)
+df <- transform(data.frame(tmp), y=name)
+# ORDER VALUES
+df_ord <- with(df, df[order(tmp,decreasing = TRUE),])
+
+
+len=5
+colrs=1:31
+# BASE R barplot:
+
+par(mfrow=c(1,2))    # set the plotting area into a 1*2 array
+barplot(df_ord$tmp[31:1], beside = TRUE, horiz = TRUE, ylab ='diseases', col=colrs[31:1], args.legend = list(x = "bottomright"), xlab= 'avg deaths / 100k hab') 
+barplot(df_ord$tmp[len:1], beside = TRUE, horiz = TRUE, ylab ='diseases',legend.text=, col=colrs[len:1], args.legend = list(x = "bottomright"), xlab= 'avg deaths / 100k hab')
+legs = df_ord$y[1:len]
+
+legs= gsub("Diseases","",legs)
+legs= gsub("Disease","",legs)
+legs= gsub("Infections","",legs)
+legend("bottomright", 
+       legend = legs,fill = 1:6,
+       cex = 0.65)
+
+
+```
+
+##  Detalle
+
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+
+len=30
+library(plotly)
+fig <- plot_ly(data_orig)
+n_enfermedad = colnames(data_orig)
+enf = df_ord$y[1:len]
+l = list()
+for( i in 1:len){
+    count = 'Spain'
+    e = enf[i]
+    data_cont=data_orig[data_orig$Country.Territory==count,which(n_enfermedad==e)]
+    e= gsub("Diseases","",e)
+    e= gsub("Disease","",e)
+    e= gsub("Infections","",e)
+    visible=F
+    if( i == 1)
+      visible=T
+    fig <- fig%>% add_lines(1990:2019,data_cont,visible=visible,name='Cases')
+    l_ = list(len)
+    for(j in 1:len)
+      l_[j]=FALSE
+    l_[i] = TRUE
+    l_1 = list(method = "restyle",
+               args = list("visible", l_),
+               label = paste(e))
+    
+    l[i] <- list(l_1)
+    
+
+}
+
+fig <- fig %>% layout(
+    title = "Peores evoluciones",
+    xaxis = list(domain= c(1990,2019),fixedrange=TRUE),
+    yaxis = list(title = "y"),
+    updatemenus = list(
+      list(
+        y = 2,
+        buttons = l
+      )
+    )
+  )
+fig
+```
+
+## España vs Europa
+
+
+```{r message= FALSE, warning=FALSE, echo=FALSE}
+if (!require('ggplot2')) install.packages('ggplot2')
+library(ggplot2)
+len=5
+data_filter= data_sum[data_sum$Country.Territory== 'Spain',]
+d =data_filter[,6:36]
+# number of NA
+tmp = sapply(d, median)
+
+name = names(tmp)
+name <- matrix(name, nrow = 31, byrow = TRUE)
+df <- transform(data.frame(tmp), y=name)
+# ORDER VALUES
+df_ord <- with(df, df[order(tmp,decreasing = TRUE),])
+df_spain=df_ord[1:len,]
+colnames(df_spain) <- c('deaths','disease')
+
+data_filter= data_sum[data_sum$Continent== 'Europe',]
+d =data_filter[,6:36]
+# number of NA
+tmp_ = sapply(d, median)
+name = names(tmp_)
+name <- matrix(name, nrow = 31, byrow = TRUE)
+df <- transform(data.frame(tmp_), y=name)
+df_ord <- with(df, df[order(tmp,decreasing = TRUE),])
+df_eur=df_ord[1:len,]
+
+
+colnames(df_eur) <- c('deaths','disease')
+
+test2 <- rbind(df_spain,df_eur)
+
+colrs=1:31
+# BASE R barplot:
+
+barplot(test2$deaths, beside = TRUE, horiz = FALSE, ylab ='deaths',legend.text=, col=colrs[1:len], args.legend = list(x = "bottomright"), xlab= '')
+axis(1,at=1:(len*2),labels=c('SP','','','','','EU','','','',''))
+legs = df_ord$y[1:len]
+
+legs= gsub("Diseases","",legs)
+legs= gsub("Disease","",legs)
+legs= gsub("Infections","",legs)
+legend("topright", 
+       legend = legs,fill = 1:6,
+       cex = 0.55)
+
+
+```
+
+# Conclusiones
+
+## Conclusiones
+
+Se detecta gran diferencia entre las dos primeras causas y el resto.
+
+* Diarrea y HIV con más incidencia en países pobres.
+* Incidencia relevante del autolesión en países ricos
+
+Georgía con valores muy altos dentro de Asia para los problemas cardiovasculares.
+
+Desde inicios de los 2000 se nota una pequeña tedencia general a la baja.
+
+Se detectan grandes anomalías puntuales como conflictos bélicos o grandes desastres naturales.
+
+Se permite comprobar un país con respecto a su Continente.
+
+* Españase encuentra por debajo de la mediana en la principal causa de muerte.
+* Aumenta en los problemas respitatorios.
+

@@ -1,3 +1,1 @@
-# uoc_PEC2
-
-Author: Cristian Campo Pérez
+PRA2 Visualización de datos
